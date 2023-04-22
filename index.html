@@ -51,6 +51,18 @@ text.active {
     color: red;
   }
 }
+	
+.dance-animation {
+  animation: dance 2s ease infinite;
+}
+
+@keyframes dance {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(0); }
+  75% { transform: translateX(5px); }
+  100% { transform: translateX(0); }
+}	
 
 </style>
 <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -74,30 +86,8 @@ text.active {
 </p>
 
 <button id="toggle-btn">Toggle View</button>  
-<p>The visualizations are of two kinds: the node-link diagram and the adjacency matrix. The default visualization that is displayed is the node link diagram. These are the interactions that are possible with the node-link diagram prior to starting the animated transition:</p>
+<h4 class="dance-animation"> start transition &rarr; Transition to Matrix View &rarr; Transition to Node View </h4>
 
-<ul>
-  <li>The nodes are colored based on their group or community. There are 7 groups. Check the readme for more information about this</li>
-	<li>Hovering over a node increases the node size and highlights the links directly, attached to the node. It also displays the character name and a description of the character.</li>
-	<li>You can also click on a node to drag it to a new position. Dragging a node close to another node repels the node causing the entire diagram to move. Essentially, the common interactions that are possible with most force directed graphs.</li>
-	<li>Once the toggle button is clicked, the interactions with the node-link diagram will be limited to hovering over the node. Hovering over the node will only display the character name and description of the character.</li>
-	<li>Why is that? The node clones allow only one mouse over interaction and are not intricately linked to the edges. Hence, in the animation phase (during which the clones are made) once these clones overlap the original nodes, the other actions such as link highlighting, dragging, repulsion are overridden.</li>
-</ul>
-
-<p><h2>The adjacency matrix:</h2><ul>
-  <li>The cells of the adjacency matrix represent the links. </li>
-  <li>Only cells formed by nodes or characters that actually co-occurred (or were connected in the node link diagram) are colored. </li>
-  <li>Hovering over any of the colored cells highlights the cell and the corresponding nodes.</li>
-  <li> You can also reorder the cells based on label (alphabetically), the cluster (community), or the count (the number of cooccurrence)</li>
-</ul>
-</p>
-
-<p><h2>Notes about transition</h2>
-  <ol><li>You can repeatedly toggle between the node link and the adjacency matrix.</li> 
-    <li>However, if you decide to change the ordering of the nodes of the adjacency matrix during a matrix view, ensure the reordering is complete before toggling to the node view. Otherwise, reordering is paused (not complete) and character names (row and column names) may overlap each other on your next view.</li> 
-    <li>You can always remove the overlap by selecting a reordering and allowing it to complete.</li>
-  </ol>
-</p>
 </aside>
 
 <script>
@@ -584,6 +574,31 @@ toggleButton.text("Toggle to Matrix View");
 </script>
 
 <footer>
+	
+<p>The visualizations are of two kinds: the node-link diagram and the adjacency matrix. The default visualization that is displayed is the node link diagram. These are the interactions that are possible with the node-link diagram prior to starting the animated transition:</p>
+
+<ul>
+  <li>The nodes are colored based on their group or community. There are 7 groups. Check the readme for more information about this</li>
+	<li>Hovering over a node increases the node size and highlights the links directly, attached to the node. It also displays the character name and a description of the character.</li>
+	<li>You can also click on a node to drag it to a new position. Dragging a node close to another node repels the node causing the entire diagram to move. Essentially, the common interactions that are possible with most force directed graphs.</li>
+	<li><b>Once you hit on `start animation`</b>, the interactions with the node-link diagram will be limited to hovering over the node. Hovering over the node will only display the character name and description of the character.</li>
+	<li><b>Why is that</b>? The node clones allow only one mouse over interaction and are not intricately linked to the edges. Hence, in the animation phase (during which the clones are made) once these clones overlap the original nodes, the other actions such as link highlighting, dragging, etc. overridden.</li>
+</ul>
+
+<p><h2>The adjacency matrix:</h2><ul>
+  <li>The cells of the adjacency matrix represent the links. </li>
+  <li>Only cells formed by nodes or characters that actually co-occurred (or were connected in the node link diagram) are colored. </li>
+  <li>Hovering over any of the colored cells highlights the cell and the corresponding nodes.</li>
+  <li> You can also reorder the cells based on label (alphabetically), the cluster (community), or the count (the number of cooccurrence)</li>
+</ul>
+</p>
+
+<p><h2>Notes about transition</h2>
+  <ol><li>You can repeatedly toggle between the node link and the adjacency matrix.</li> 
+    <li>However, if you decide to change the ordering of the nodes of the adjacency matrix during a matrix view, ensure the reordering is complete before toggling to the node view. Otherwise, reordering is paused (not complete) and character names (row and column names) may overlap each other on your next view.</li> 
+    <li>You can always remove the overlap by selecting a reordering and allowing it to complete.</li>
+  </ol>
+</p>
   <aside>February 26, 2023</aside>
   <a href="https://www.linkedin.com/in/mustaphaunubi//" rel="author">Mustapha Unubi Momoh</a>
   <p class="attribution">Data: <a href="https://github.com/MADStudioNU/lesmiserables-character-network/tree/master/parsed_data">Les Miserables Character Network</a>.</p>
