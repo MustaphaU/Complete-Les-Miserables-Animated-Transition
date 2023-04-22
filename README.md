@@ -10,6 +10,12 @@
 ⬇️
 ![now_matrix](https://user-images.githubusercontent.com/123378149/233772102-280fc3d5-b39d-4116-bd3a-0562303abf94.png)
 ⬇️
+![back_to_nodee](https://user-images.githubusercontent.com/123378149/233772909-d3f5bea5-2827-41b9-8cc7-0ddc0d8cd265.png)
+⬇️
+![almost_node](https://user-images.githubusercontent.com/123378149/233772919-25643dfc-7951-4996-ab3b-f42124d5e78e.png)
+⬇️
+![almost_node_1](https://user-images.githubusercontent.com/123378149/233772928-b029b581-f990-4542-a90c-bf89107bb09a.png)
+⬇️
 ![complete_nd](https://user-images.githubusercontent.com/123378149/233771249-6cadc26f-aee5-49bf-bfa8-0e8abf3240ea.png)
 
 
