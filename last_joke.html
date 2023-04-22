@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html class="hi ">
+<meta charset="utf-8">
+<!-- <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=2.0, user-scalable=yes"> -->
+
+<title>Complete Les Misérables Character Network</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.background {
+  fill: #eee;
+}
+
+line {
+  stroke: #fff;
+}
+
+text.active {
+  fill: red;
+}
+
+.links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.color-animation {
+  animation-name: color-change;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+}
+
+@keyframes color-change {
+  0% {
+    color: red;
+  }
+  25% {
+    color: blue;
+  }
+  50% {
+    color: green;
+  }
+  75% {
+    color: yellow;
+  }
+  100% {
+    color: red;
+  }
+}
+
+</style>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<body>
+    
+<header>
+  <aside>February 26, 2023</aside>
+  <a href="https://www.linkedin.com/in/mustaphaunubi/" rel="author">Mustapha Momoh</a>
+</header>
+
+<h1 class="color-animation">Node-Link and Adjacency Matrix Visualizations</h1>
+
+<!--create a div for the aside elements-->
+<!--<div class="aside-wrapper" id="myAside">-->
+<aside style="margin-top:80px;">
+<p id="reordering" style="visibility: hidden;">Order: <select id="order">
+  <option value="label">by Label</option>
+  <option value="count">by Frequency</option>
+  <option value="group">by Cluster</option>
+</select>
+</p>
+
+<button id="toggle-btn">Toggle View</button>  
+<p>The visualizations are of two kinds: the node-link diagram and the adjacency matrix. The default visualization that is displayed is the node link diagram. These are the interactions that are possible with the node-link diagram prior to starting the animated transition:</p>
+
+<ul>
+  <li>The nodes are colored based on their group or community. There are 7 groups. Check the readme for more information about this</li>
+	<li>Hovering over a node increases the node size and highlights the links directly, attached to the node. It also displays the character name and a description of the character.</li>
+	<li>You can also click on a node to drag it to a new position. Dragging a node close to another node repels the node causing the entire diagram to move. Essentially, the common interactions that are possible with most force directed graphs.</li>
+	<li>Once the toggle button is clicked, the interactions with the node-link diagram will be limited to hovering over the node. Hovering over the node will only display the character name and description of the character.</li>
+	<li>Why is that? The node clones allow only one mouse over interaction and are not intricately linked to the edges. Hence, in the animation phase (during which the clones are made) once these clones overlap the original nodes, the other actions such as link highlighting, dragging, repulsion are overridden.</li>
+</ul>
+
+<p><h2>The adjacency matrix:</h2><ul>
+  <li>The cells of the adjacency matrix represent the links. </li>
+  <li>Only cells formed by nodes or characters that actually co-occurred (or were connected in the node link diagram) are colored. </li>
+  <li>Hovering over any of the colored cells highlights the cell and the corresponding nodes.</li>
+  <li> You can also reorder the cells based on label (alphabetically), the cluster (community), or the count (the number of cooccurrence)</li>
+</ul>
+</p>
+
+<p><h2>Notes about transition</h2>
+  <ol><li>You can repeatedly toggle between the node link and the adjacency matrix.</li> 
+    <li>However, if you decide to change the ordering of the nodes of the adjacency matrix during a matrix view, ensure the reordering is complete before toggling to the node view. Otherwise, reordering is paused (not complete) and character names (row and column names) may overlap each other on your next view.</li> 
+    <li>You can always remove the overlap by selecting a reordering and allowing it to complete.</li>
+  </ol>
+</p>
+</aside>
+
+<script>
+
+var margin = {top: 80, right: 0, bottom: 10, left: 80},
+    width = 720,
+    height = 720;
+
+
+    var x = d3.scaleBand().range([0, width]),
+    //y = d3.scaleBand().range([0, height]),
+    z = d3.scaleLinear().domain([0, 4]).clamp(true), //set the domain of the color scale, clamping the output range to the range [0, 1]
+    c = d3.scaleOrdinal(d3.schemeCategory10);    //set the color scale
+    
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .style("margin-left", -margin.left + "px")
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+//setting up the color for the nodes
+
+var color = d3.scaleOrdinal(d3.schemeCategory20);
+var simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().id(function(d) { return d.id; })) //id() returns the id of the node
+    .force("charge", d3.forceManyBody()) //
+    .force("center", d3.forceCenter(width / 2, height / 2)); //the force is applied to the center of the svg
+
+    function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart(); // simulation is restarted to make sure the nodes don't move when the user is dragging them
+  d.fx = d.x; //set the fixed x position of the node to the current x position
+  d.fy = d.y; //set the fixed y position of the node to the current y position
+}
+
+function dragged(d) {
+  d.fx = d3.event.x; //set the fixed x position of the node to the current x position
+  d.fy = d3.event.y; //set the fixed y position of the node to the current y position
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null; //set the fixed x position of the node to null
+  d.fy = null; //set the fixed y position of the node to null
+}
+
+var node, link;
+d3.json("combined_data_new_finall.json", function(error, graph) {
+if (error) throw error;
+function transitionToMatrix() {
+
+    var matrix = [],
+      nodes = graph.nodes,
+      n = nodes.length;
+
+  // Compute index per node.
+  nodes.forEach(function(node, i) {
+    node.index = i;
+    node.count = 0;
+    matrix[i] = d3.range(n).map(function(j) { return {x: j, y: i, z: 0}; }); //initialize the matrix x,y,z, where z is the count of the number of times the two characters appear in the same chapter, x and y are the indices of the characters                                                                       
+    });
+
+  // Convert links to matrix; count character occurrences.
+  //set a constant value for the number of times the two characters appear in the same chapter
+
+
+  var weight = 1;
+  graph.links.forEach(function(link) { 
+    matrix[link.source][link.target].z += weight; //increment the count of the number of times the two characters appear in the same chapter
+    matrix[link.target][link.source].z += weight; //increment the count of the number of times the two characters appear in the same chapter
+    matrix[link.source][link.source].z += weight; //increment the count of the number of times the character appears in the book
+    matrix[link.target][link.target].z += weight; //increment the count of the number of times the character appears in the book
+    nodes[link.source].count += weight;  //increment the count of the number of times the character appears in the book
+    nodes[link.target].count += weight;  //increment the count of the number of times the character appears in the book
+  });
+   //print the count of z
+
+//     console.log(nodes);
+
+
+  // Precompute the orders.
+  var orders = {
+    label: d3.range(n).sort(function(a, b) { return d3.ascending(nodes[a].label, nodes[b].label); }),
+    count: d3.range(n).sort(function(a, b) { return nodes[b].count - nodes[a].count; }), // subtracting the count of the two characters to get the order of the characters
+    group: d3.range(n).sort(function(a, b) { return nodes[b].group - nodes[a].group; }) // subtracting the group of the two characters to get the order of the characters, if the characters are in the same group, the order is the same, difference is 0
+  };
+
+
+  // The default sort order.
+  x.domain(orders.label);
+  //set the domain of the y scale as the reverse of the domain of the x scale
+    //y.domain(orders.label.map(function(d) { return nodes[d].label; }));
+
+console.log(matrix[1][0].y)
+console.log(orders.label);
+  
+  const newsvg = svg.append("rect")
+      .attr("class", "background")
+      .attr("width", width)
+      .attr("height", height);
+
+
+  var row = svg.selectAll(".row")
+      .data(matrix)
+    .enter().append("g")
+      .attr("class", "row")
+      .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; }) //set the y position of the row to the position of the character in the x scale
+      .each(row);
+
+  row.append("line")
+      .attr("x2", width);
+
+//label the rows
+  row.append("text")
+      .attr("x", -6)
+      .attr("y", x.bandwidth() / 2) //set the y position of the text
+      .attr("dy", ".32em") 
+      .attr("text-anchor", "end")
+      //set font size
+        .style("font-size", "3.5px")
+      .text(function(d, i) { return nodes[i].label; });
+
+  var column = svg.selectAll(".column")
+      .data(matrix)
+    .enter().append("g")
+      .attr("class", "column")
+      .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+
+  column.append("line")
+      .attr("x1", -width);
+
+  column.append("text")
+      .attr("x", 6)
+      .attr("y", x.bandwidth() / 2)
+      .attr("dy", ".32em")
+      .attr("text-anchor", "start")
+        //set font size
+            .style("font-size", "3.5px")
+      .text(function(d, i) { return nodes[i].label; });
+
+      var reordering = document.getElementById("reordering");
+    reordering.style.visibility = "visible"; //make the reordering dropdown visible
+
+  function row(row) {
+    var cell = d3.select(this).selectAll(".cell") //select all the cells in the row
+        .data(row.filter(function(d) { return d.z; })) //filter out the cells with a count of 0
+      .enter().append("rect") //append a rect for each cell
+        .attr("class", "cell")  //set the class of the cell to cell
+        .attr("x", function(d) { return x(d.x); }) //set the x position of the cell to the position of the character in the x scale
+        .attr("width", x.bandwidth())
+        .attr("height", x.bandwidth())
+        .style("fill-opacity", function(d) { return z(d.z); })
+        
+
+        .style("fill", function(d) { return nodes[d.x].group == nodes[d.y].group ? c(nodes[d.x].group) : null; }) 
+        .on("mouseover", mouseover)
+        .on("mouseout", mouseout);
+  }
+
+  //print the third rectangle in the first row
+  console.log(d3.selectAll(".row").data()[0][8]); // the source character is 0, the target character is 8, the count is 1 
+  //print the position of the third rectangle in the first row
+  console.log(x(d3.selectAll(".row").data()[0][8].x)); // the source character is 0, the target character is 8, the count is 1
+
+
+  function mouseover(p) {
+    d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; }); //set the class of the text in the row to active
+    d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; }); //set the class of the text in the column to active
+    //increase the font size of the text in the particular row and column
+    d3.selectAll(".row text").style("font-size", function(d, i) { return i == p.y ? "10px" : "3.5px"; }); //if the text is in the row that is being hovered over, set the font size to 10px, otherwise set it to 3.5px
+    d3.selectAll(".column text").style("font-size", function(d, i) { return i == p.x ? "10px" : "3.5px"; }); //if the text is in the column that is being hovered over, set the font size to 10px, otherwise set it to 3.5px
+    //increase the size of the cell
+    d3.selectAll(".cell").attr("width", function(d) { return d.x == p.x && d.y == p.y ? x.bandwidth() * 1.5 : x.bandwidth(); }); //if the cell is in the row and column that is being hovered over, set the width to 1.5 times the width of the cell, otherwise set it to the width of the cell
+    d3.selectAll(".cell").attr("height", function(d) { return d.x == p.x && d.y == p.y ? x.bandwidth() * 1.5 : x.bandwidth(); }); //if the cell is in the row and column that is being hovered over, set the height to 1.5 times the height of the cell, otherwise set it to the height of the cell
+
+  }
+
+  function mouseout() {
+    d3.selectAll("text").classed("active", false);
+    //set the font size of the text in the particular row and column to the original size
+    d3.selectAll(".row text").style("font-size", "3.5px");
+    d3.selectAll(".column text").style("font-size", "3.5px");
+    //set the size of the cell to the original size
+    d3.selectAll(".cell").attr("width", x.bandwidth());
+    d3.selectAll(".cell").attr("height", x.bandwidth());
+  }
+
+  d3.select("#order").on("change", function() {
+    clearTimeout(timeout);
+    order(this.value);
+  });
+
+  function order(value) {
+    x.domain(orders[value]);
+
+    var t = svg.transition().duration(2500);
+
+    t.selectAll(".row")
+        .delay(function(d, i) { return x(i) * 4; })
+        .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; }) //
+      .selectAll(".cell")
+        .delay(function(d) { return x(d.x) * 4; })
+        .attr("x", function(d) { return x(d.x); });
+
+    t.selectAll(".column")
+        .delay(function(d, i) { return x(i) * 4; })
+        .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+  }
+
+  var timeout = setTimeout(function() {
+    order("group");
+    d3.select("#order").property("selectedIndex", 2).node().focus();
+  }, 5000);
+  return{
+    matrix: matrix,
+    column: column,
+    row: row,
+    newsvg: newsvg,
+    reordering: reordering};
+}
+
+
+  function transitionToNode(){
+  var link = svg.append("g")
+      .attr("class", "links")
+    .selectAll("line")
+    .data(graph.links)
+    .enter().append("line")
+      .attr("stroke-width", 1); //d.value = 3, please find out what the weight is
+
+  var node = svg.append("g")
+      .attr("class", "nodes")
+    .selectAll("circle")
+    .data(graph.nodes)
+    .enter().append("circle")
+    .attr("r", 5)
+    .attr("fill", function(d) { return color(d.group); })
+    
+    //.attr("fill", "red") //if you want to use the same color for all nodes
+      .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended))
+    //mouseover function to highlight the node and its neighbors
+    .on("mouseover", function(d) {
+      //highlight the node
+      d3.select(this).attr("r", 10);
+      //highlight the neighbors
+      link.style("stroke", function(l) {
+        if (l.source === d || l.target === d) {
+          return "red";
+        } else {//if the node is not a neighbour, return original color
+          return l.stroke;
+        }
+      });
+    })
+    //mouseout function to unhighlight the node and its neighbors
+    .on("mouseout", function(d) {
+      //unhighlight the node
+      d3.select(this).attr("r", 5);
+      //unhighlight the neighbors
+      link.style("stroke", function(l) {
+        return l.stroke;
+      });
+    });
+    //add tooltip of the label and description of the node, each in separate lines
+    node.append("title")
+    .html(function(d) { return `<strong>label:</strong> ${d.label}\n<strong>Desc:</strong> ${d.description}`; });
+
+  simulation
+      .nodes(graph.nodes)
+      .on("tick", ticked);
+
+  simulation.force("link")
+      .links(graph.links);
+  
+
+  function ticked() { //function to update the position of the nodes and links
+    link
+        .attr("x1", function(d) { return d.source.x; }) //d.source.x = x coordinate of the source node
+        .attr("y1", function(d) { return d.source.y; })  //d.source.y = y coordinate of the source node
+        .attr("x2", function(d) { return d.target.x; }) //d.target.x = x coordinate of the target node
+        .attr("y2", function(d) { return d.target.y; }); //d.target.y = y coordinate of the target
+
+    node
+        .attr("cx", function(d) { return d.x; })  //d.x = x coordinate of the node
+        .attr("cy", function(d) { return d.y; }); //d.y = y coordinate of the node
+  }
+
+return {link: link, node: node};
+    }
+
+const toggleButton = d3.select("#toggle-btn");
+
+const {matrix, column, row, newsvg, reordering} = transitionToMatrix();
+column.attr("opacity", 0)
+row.attr("opacity", 0)
+newsvg.attr("opacity", 0)
+reordering.style.visibility = "hidden";
+console.log(matrix)
+
+const {link, node} = transitionToNode()
+toggleButton.text("Start Transition");
+var newNode = node.clone(true);
+newNode.attr("opacity", 0)
+//clone the link
+var newLink = link.clone(true);
+newLink.attr("opacity", 0)
+
+var newLink2 = link.clone(true);
+newLink2.attr("opacity", 0) 
+
+toggleButton.on("click", function() {
+ // toggleButton.text("Toggle to Matrix View");
+const currentState = toggleButton.text();
+
+//toggle between the two views
+if (currentState === "Start Transition") {
+//remove the matrix view
+column.transition().delay(1000).ease(d3.easeLinear).attr("opacity", 0)
+row.transition().delay(1000).ease(d3.easeLinear).attr("opacity", 0)
+newsvg.transition().delay(1000).ease(d3.easeLinear).attr("opacity", 0)
+reordering.style.visibility = "hidden";
+
+
+//add the node view
+node.transition().duration(4000)
+.attr("cx", function(d) { return d.x; })  //d.x = x coordinate of the node
+.attr("cy", function(d) { return d.y; }) //d.y = y coordinate of the node
+.attr("opacity", 1)
+
+
+link.transition().duration(4000)
+.attr("x1", function(d) { return d.source.x; }) //d.source.x = x coordinate of the source node
+.attr("y1", function(d) { return d.source.y; })  //d.source.y = y coordinate of the source node
+.attr("x2", function(d) { return d.target.x; }) //d.target.x = x coordinate of the target node
+.attr("y2", function(d) { return d.target.y; }) //d.target.y = y coordinate of the target
+.attr("opacity", 1)
+
+
+//add the new node view
+//newNode = node.clone(true)
+newNode.transition().duration(4000)
+.attr("cx", function(d) { return d.x; })  //d.x = x coordinate of the node
+.attr("cy", function(d) { return d.y; }) //d.y = y coordinate of the node
+.attr("opacity", 0)
+
+newLink.transition().duration(4000)
+.attr("x1", function(d) { return d.source.x; }) //d.source.x = x coordinate of the source node
+.attr("y1", function(d) { return d.source.y; })  //d.source.y = y coordinate of the source node
+.attr("x2", function(d) { return d.target.x; }) //d.target.x = x coordinate of the target node
+.attr("y2", function(d) { return d.target.y; }) //d.target.y = y coordinate of the target
+.attr("opacity", 0)
+
+
+
+
+toggleButton.text("Toggle to Matrix View");
+console.log(node);
+
+
+} else if (currentState === "Toggle to Matrix View") { 
+        //var newNode = node.clone(true);
+        newNode.transition()
+        .attr("opacity", 1)
+        .duration(4000)
+        .ease(d3.easeCubicOut)
+        .attr("cx", function(d, i) { return x(i); }) //move the new nodes to the first column of the matrix
+        .attr("cy", function(d) { return 0; })
+        .on("end", function() {
+            newNode.attr("opacity", 0);
+        })
+
+        newLink.transition()
+        .attr("opacity", 1)
+        .duration(5000)
+        .ease(d3.easeCubicOut)
+        .attr("x1", function(d,p) {return x(d3.selectAll(".row").data()[d.target.index][d.source.index].x) }) //d.source.x = x coordinate of the source node
+        .attr("y1", function(d,p) {return x(d3.selectAll(".row").data()[d.target.index][d.source.index].y) })  //d.source.y = y coordinate of the source node
+        .attr("x2", function(d,p) {return x(d3.selectAll(".row").data()[d.target.index][d.source.index].x) }) //d.target.x = x coordinate of the target node
+        .attr("y2", function(d,p) {return x(d3.selectAll(".row").data()[d.target.index][d.source.index].y) }) //d.target.y = y coordinate of the target
+        .on("end", function() {
+            newLink.attr("opacity", 0);
+        })
+
+
+        //move original nodes to the first column of the matrix
+        node.transition()
+        .duration(4000)
+        .ease(d3.easeCubicOut)
+        .attr("cx", function(d) { return 0; })
+        .attr("cy", function(d, i) { return x(i); }) //move the nodes to the first row of the matrix
+        .on("end", function() {
+            node.attr("opacity", 0);
+        })
+
+        //fade out the links
+        link.transition()
+        .duration(5000)
+        .ease(d3.easeCubicOut)
+        .attr("x1", function(d,p) {return x(d3.selectAll(".row").data()[d.source.index][d.target.index].x) }) //d.source.x = x coordinate of the source node
+        .attr("y1", function(d,p) {return x(d3.selectAll(".row").data()[d.source.index][d.target.index].y) })
+        .attr("x2", function(d,p) {return x(d3.selectAll(".row").data()[d.source.index][d.target.index].x) })
+        .attr("y2", function(d,p) {return x(d3.selectAll(".row").data()[d.source.index][d.target.index].y) })
+        .on("end", function() {
+            link.attr("opacity", 0);
+        })
+
+        //add the matrix view
+        row.transition()
+        .duration(4000)
+        .ease(d3.easeCubicOut)
+        .on("end", function() {
+            row.attr("opacity", 1);
+        });
+
+    column.transition()
+        .duration(4000)
+        .ease(d3.easeCubicOut)
+        .on("end", function() {
+            column.attr("opacity", 1);
+        })
+
+    //print the cell corresponding to the link
+    
+    
+
+    newsvg.transition()
+        .duration(2000)
+        //.ease(d3.easeCubicOut)
+       .attr("opacity", 1)
+
+    reordering.style.visibility = "visible";
+
+    toggleButton.text("Toggle to Node View");
+}
+
+else if (currentState === "Toggle to Node View"){
+  column.transition().delay(1000).ease(d3.easeLinear).attr("opacity", 0)
+row.transition().delay(1000).ease(d3.easeLinear).attr("opacity", 0)
+newsvg.transition().delay(1000).ease(d3.easeLinear).attr("opacity", 0)
+reordering.style.visibility = "hidden";
+
+//add the new node view
+//newNode = node.clone(true)
+newNode.transition().duration(4000)
+.attr("cx", function(d) { return d.x; })  //d.x = x coordinate of the node
+.attr("cy", function(d) { return d.y; }) //d.y = y coordinate of the node
+.attr("opacity", 1)
+
+newLink.transition().duration(4000)
+.attr("x1", function(d) { return d.source.x; }) //d.source.x = x coordinate of the source node
+.attr("y1", function(d) { return d.source.y; })  //d.source.y = y coordinate of the source node
+.attr("x2", function(d) { return d.target.x; }) //d.target.x = x coordinate of the target node
+.attr("y2", function(d) { return d.target.y; }) //d.target.y = y coordinate of the target
+.attr("opacity", 1)
+
+
+
+//add the node view
+node.transition().duration(4000)
+.attr("cx", function(d) { return d.x; })  //d.x = x coordinate of the node
+.attr("cy", function(d) { return d.y; }) //d.y = y coordinate of the node
+.attr("opacity", 1)
+
+
+link.transition().duration(4000)
+.attr("x1", function(d) { return d.source.x; }) //d.source.x = x coordinate of the source node
+.attr("y1", function(d) { return d.source.y; })  //d.source.y = y coordinate of the source node
+.attr("x2", function(d) { return d.target.x; }) //d.target.x = x coordinate of the target node
+.attr("y2", function(d) { return d.target.y; }) //d.target.y = y coordinate of the target
+.attr("opacity", 1)
+
+
+
+toggleButton.text("Toggle to Matrix View");
+}
+
+});
+
+});
+
+
+</script>
+
+<footer>
+  <aside>February 26, 2023</aside>
+  <a href="https://www.linkedin.com/in/mustaphaunubi//" rel="author">Mustapha Unubi Momoh</a>
+  <p class="attribution">Data: <a href="https://github.com/MADStudioNU/lesmiserables-character-network/tree/master/parsed_data">Les Miserables Character Network</a>.</p>
+  <p class="attribution">Inspired by: <a href="https://bost.ocks.org/mike/miserables/">Mike Bostock</a>.</p>
+
+</footer>
+</body>
+</html>
