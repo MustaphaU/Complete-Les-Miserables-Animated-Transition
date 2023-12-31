@@ -2,6 +2,29 @@
 
 View deployment here: https://mustaphau.github.io/Complete-Les-Miserables-Animated-Transition/
 
+# Visualization Guide
+
+## Node-Link Diagram
+
+- Nodes represent groups or communities and are color-coded. (7 groups exist)
+- Hover over a node to enlarge and highlight its direct connections. This will also display the character name and description.
+- Click and drag nodes to reposition them. Other nodes will repel and move accordingly.
+- After initiating 'Start Transition', interactions are limited to hover details due to overlapping elements that disable other interactions like link highlighting and node dragging.
+
+## Adjacency Matrix
+
+- Matrix cells represent links between nodes.
+- Only cells for nodes that co-occurred are colored.
+- Hovering over colored cells will highlight the cell and its nodes.
+- You can sort the cells by label, cluster, or co-occurrence count.
+
+## Transition Notes
+
+1. You can toggle between the node-link and adjacency matrix views.
+2. If you re-order nodes in the matrix view, ensure you allow the reordering process to complete before switching back to the node view.
+3. Overlapping names in the matrix view can be resolved by completing the reordering process.
+
+
 ![complete_nd](https://user-images.githubusercontent.com/123378149/233771249-6cadc26f-aee5-49bf-bfa8-0e8abf3240ea.png)
 ⬇️
 ![going_to_matrix](https://user-images.githubusercontent.com/123378149/233772079-2cdf01b9-3f48-4833-b7d4-5d45f7c1280f.png)
