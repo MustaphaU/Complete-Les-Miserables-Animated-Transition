@@ -1,6 +1,7 @@
 # Complete-Les-Miserables-Character-Network: Animated-Transition
 
 View deployment here: https://mustaphau.github.io/Complete-Les-Miserables-Animated-Transition/
+![Transition Demo](small_transition.gif)
 
 # Visualization Guide
 
